@@ -14,6 +14,7 @@ score = 0
 screen_width = 700
 screen_height = 500
 screen = pygame.display.set_mode((700, 500))
+spawn_rate = 20 #più è basso più spawnano
 
 fruits = [Fruit(random.randint(50, screen_width), screen_height) for _ in range(num_fruits)]
 
@@ -23,6 +24,11 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+    print(pygame.time.get_ticks())
+
+    if pygame.time.get_ticks() % spawn_rate == 0:
+        new_fruit = Fruit(random.randint(50, screen_width), screen_height)
+        fruits.append(new_fruit)
 
     # Clear the screen
     screen.fill((0, 0, 0))
