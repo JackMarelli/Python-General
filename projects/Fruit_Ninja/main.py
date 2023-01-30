@@ -8,19 +8,14 @@ pygame.display.set_caption("Fruit Ninja")
 
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 20)
-fruits = []
-fruit_images = ["assets/images/fruits/peach.png",
-                "assets/images/fruits/apple.png",
-                "assets/images/fruits/watermelon.png",
-                "assets/images/fruits/orange.png"]
+fruit_size = 60
+num_fruits = 5
 score = 0
+screen_width = 700
+screen_height = 500
 screen = pygame.display.set_mode((700, 500))
 
-# add 10 random fruits to the list
-for i in range(10):
-    pos = (random.randint(50, 650), random.randint(50, 450))
-    random_fruit = random.choice(fruit_images)
-    fruits.append(Fruit(random_fruit, pos))
+fruits = [Fruit(random.randint(50, screen_width), screen_height) for _ in range(num_fruits)]
 
 running = True
 while running:
@@ -43,6 +38,9 @@ while running:
         if fruit.rect.collidepoint(cursor_pos):
             fruits.remove(fruit)
             score += 1
+
+    # remove fruits that are out of the screen
+    fruits = [fruit for fruit in fruits if fruit.rect.y < screen_height]
 
     # Draw the fruits
     for fruit in fruits:
