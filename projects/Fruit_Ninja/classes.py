@@ -1,25 +1,27 @@
-import math
-import pygame
-import random
+from gvars import *
+from utils import *
 
-class Fruit:
+class Item:
 
-    def __init__(self, x, y):
-        self.fruit_images = ["assets/images/fruits/peach.png",
-                        "assets/images/fruits/apple.png",
-                        "assets/images/fruits/watermelon.png",
-                        "assets/images/fruits/orange.png"]
-        self.throw_angle = random.randint(-20, 20)
-        self.x = x
-        self.y = y
-        self.image = pygame.image.load(random.choice(self.fruit_images))
+    def __init__(self, image, type="fruit"):
+        self.type = type
+        self.x = random.randint((screen_width/2-allowed_spawn_screen_x_pixels/2),(screen_width/2+allowed_spawn_screen_x_pixels/2))
+        self.y = screen_height + fruit_size  # always spawn below the screen
+        self.image = pygame.transform.scale(image, (fruit_size, fruit_size))
         self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.velocity = -random.randint(400, 500)
+        self.rect.x = self.x
+        self.rect.y = self.y
+        self.throw_angle = random.randint(-20, 20)
+        self.velocity = -random.randint(380, 550)
         self.acceleration = 420
 
     def update(self, dt):
         self.rect.y += self.velocity * dt
         self.rect.x += math.cos(self.throw_angle)
         self.velocity += self.acceleration * dt
+
+class Fruit(Item):
+
+    def __init__(self):
+        self.image = load_image(item_images[random.choice(fruit_names)])
+        super().__init__(self.image)
