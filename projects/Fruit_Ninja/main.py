@@ -15,7 +15,7 @@ while running:
         items.append(new_fruit)
 
     # Clear the screen
-    screen.blit(background, (0,0))
+    screen.blit(background, (0, 0))
 
     # Update the fruits
     dt = clock.tick(60) / 1000
@@ -34,16 +34,18 @@ while running:
             print("fruit out of screen")
             items.remove(i)
             lives -= 1
-            if lifes <= 0 and not immortality:
+            if lives <= 0 and not immortality:
                 print("game over")
                 running = False
-
 
     # remove fruits that are out of the screen
 
     # Update the score
-    score_text = font.render("Score: {}".format(score), True, (255, 255, 255))
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
     screen.blit(score_text, (10, 10))
+
+    lives_text = font.render(f"Lives: {lives}", True, (255, 255, 255))
+    screen.blit(lives_text, (screen_width - lives_text.get_width() - 10, 10))
 
     # Update the screen
     pygame.display.flip()

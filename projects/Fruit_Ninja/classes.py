@@ -13,7 +13,7 @@ class Item:
         self.rect.y = self.y
         self.throw_angle = random.randint(-20, 20)
         self.velocity = -random.randint(380, 550)
-        self.acceleration = 420
+        self.acceleration = 400
 
     def update(self, dt):
         self.rect.y += self.velocity * dt
