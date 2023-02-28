@@ -22,6 +22,8 @@ while running:
         latest_score = match.loop()
         status = "main_menu"
         print(f"latest score: {latest_score}")
+    elif status == "quit":
+        pygame.quit()
 
     # Update the screen
     pygame.display.flip()

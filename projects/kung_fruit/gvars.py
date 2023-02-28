@@ -1,4 +1,5 @@
-import pygame, random, math, time
+import pygame, random, math, time, csv
+from datetime import date
 from utils import *
 
 pygame.init()
@@ -21,7 +22,10 @@ default_bg_color = white
 default_text_color = black
 
 # game
+status = "main_menu"
 immortality = False
+bonus_score_value = 5
+malus_score_value = 10
 
 # images
 fruit_names = ("apple", "orange", "watermelon", "peach")

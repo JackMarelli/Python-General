@@ -1,3 +1,5 @@
+import datetime
+
 from gvars import *
 from utils import *
 
@@ -10,6 +12,8 @@ class Menu:
     def __init__(self):
         # everywhere useful text
         self.title_text = font.render("Kung Fruit", True, default_text_color)
+        self.yes_text = font.render("Y - Yes", True, default_text_color)
+        self.no_text = font.render("N - No", True, default_text_color)
 
         # main-menu useful text
         self.play_text = font.render("P - Play", True, default_text_color)
@@ -18,8 +22,9 @@ class Menu:
 
         # confirm-menu useful text
         self.confirm_text = font.render("Quit? Your score won't be saved :(", True, default_text_color)
-        self.yes_text = font.render("Y - Yes", True, default_text_color)
-        self.no_text = font.render("N - No", True, default_text_color)
+
+        # pause-menu useful text
+        self.pause_text = font.render("Game is paused. Continue Playing?", True, default_text_color)
 
     def main_menu(self):
         running = True
@@ -37,6 +42,8 @@ class Menu:
             screen.blit(self.exit_text,
                         (50,
                          210))
+            chart = Chart()
+            chart.print_chart(350, 50)
             pygame.display.flip()
 
             keys = pygame.key.get_pressed()
@@ -54,15 +61,25 @@ class Menu:
         return "quit"  # if something weird happens close the game, this shouldn't happen
 
     def pause_menu(self):
-        pass
-
-    def options_menu(self):
-        pass
-
-    def game_over_menu(self):
         running = True
         while running:
-            pass
+            screen.fill(default_bg_color)
+            screen.blit(self.pause_text, (50, 50))
+            screen.blit(self.yes_text, (50, 180))
+            pygame.display.flip()
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_y]:
+                return "playing"
+
+            # Handle events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+        return False
+
+    def options_menu(self):
+        return "main_menu"  # todo: make options ui
 
     def confirm_menu(self):
         running = True
@@ -114,9 +131,6 @@ class Match:
                         conf = menu.confirm_menu()
                         if conf:
                             running = False
-                    elif keys[pygame.K_p]:
-                        print("match paused")
-                        menu.pause_menu()
 
             if self.game_mode == "classic":
                 if random.random() < self.fruits_spawn_rate:
@@ -140,11 +154,15 @@ class Match:
                         self.items.remove(i)
                         self.score += 1
                     if i.rect.y > screen_height + fruit_size:
-                        print("fruit out of screen")
+                        print("fruit out of screen (down)")
                         self.items.remove(i)
                         self.lives -= 1
                         if self.lives <= 0 and not immortality:
                             print("game over")
+                            results = MatchResults(self.score)
+                            chart = Chart()
+                            chart.add(results)
+                            chart.update_csv()
                             running = False
 
                 # Update the score
@@ -160,6 +178,57 @@ class Match:
 
             pygame.display.flip()
         return self.score
+
+
+class MatchResults:
+
+    def __init__(self, fruits_cut, match_date=date.today(), bonus_cut=0, malus_cut=0):
+        self.match_date = match_date
+        self.fruits_cut = 0
+        self.bonus_cut = bonus_cut
+        self.malus_cut = malus_cut
+        self.score = fruits_cut + self.bonus_cut * bonus_score_value - self.malus_cut * malus_score_value
+
+    def print_results(self):
+        print(
+            f"date: {self.match_date}, score: {self.score}, fruits cut: {self.fruits_cut}, bonus cut: {self.bonus_cut}, malus cut: {self.malus_cut}")
+
+
+
+class Chart:
+
+    def __init__(self):
+        self.matches = []
+        self.read_csv()
+
+    def read_csv(self):
+        with open("chart.csv", 'r') as file:
+            csvreader = csv.reader(file)
+            for row in csvreader:
+                self.matches.append(MatchResults(match_date=row[0], fruits_cut=int(row[1])))
+
+    def update_csv(self):
+        with open("chart.csv", "w", newline="") as file:
+            csvwriter = csv.writer(file)
+            for m in self.matches:
+                csvwriter.writerow([m.match_date, m.score])
+
+    def add(self, MatchResults):
+        self.matches.append(MatchResults)
+
+    def print_chart(self, x, y):
+        date_text = font.render("Date", True, default_text_color)
+        score_text = font.render("Score", True, default_text_color)
+        screen.blit(date_text, (x, y))
+        screen.blit(score_text, (x + 100, y))
+        self.matches.sort(key=lambda x: x.score, reverse=True)
+        for i in range(len(self.matches)):
+            date_number = font.render(f"{self.matches[i].match_date}", True, default_text_color)
+            score_number = font.render(f"{self.matches[i].score}", True, default_text_color)
+            screen.blit(date_number, (x, y + 30 * (i+1)))
+            screen.blit(score_number, (x + 100, y + 30 * (i+1)))
+
+
 
 
 # ITEMS DEDICATED CLASSES AND SUBCLASSES
