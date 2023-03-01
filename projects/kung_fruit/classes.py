@@ -29,7 +29,7 @@ class Menu:
     def main_menu(self):
         running = True
         while running:
-            screen.fill(default_bg_color)
+            screen.blit(main_menu_bg, (0, 0))
             screen.blit(self.title_text,
                         (50,
                          50))
@@ -84,7 +84,7 @@ class Menu:
     def confirm_menu(self):
         running = True
         while running:
-            screen.fill(default_bg_color)
+            screen.blit(confirm_menu_bg, (0,0))
             screen.blit(self.confirm_text, (50, 50))
             screen.blit(self.no_text, (50, 150))
             screen.blit(self.yes_text, (50, 180))
@@ -111,7 +111,7 @@ class Match:
         self.difficulty = 1
         self.game_mode = game_mode
         self.fruits_spawn_rate = 0.04
-        self.malus_spawn_rate = 0.0
+        self.malus_spawn_rate = 0.01
         self.items = []
         self.clock = pygame.time.Clock()
         print("match initialized")
@@ -136,9 +136,12 @@ class Match:
                 if random.random() < self.fruits_spawn_rate:
                     new_fruit = Fruit()
                     self.items.append(new_fruit)
+                if random.random() < self.malus_spawn_rate:
+                    new_malus = Malus()
+                    self.items.append(new_malus)
 
                 # Clear the screen
-                screen.blit(background, (0, 0))
+                screen.blit(in_game_bg, (0, 0))
 
                 # Update the fruits
                 dt = self.clock.tick(60) / 1000
@@ -150,13 +153,29 @@ class Match:
                 cursor_pos = pygame.mouse.get_pos()
                 for i in self.items:
                     if i.rect.collidepoint(cursor_pos):
-                        print("fruit cut")
+                        if i.item_type == "fruit":
+                            # print("fruit cut")
+                            tmp_score_text = font.render("+1", True, default_text_color)
+                            self.score += 1
+                        elif i.item_type == "red_bomb":
+                            # print("red bomb cut")
+                            tmp_score_text = font.render("-10", True, default_text_color)
+                            self.score -= 10
+                            self.lives -=1
+                        elif i.item_type == "purple_bomb":
+                            # print("purple bomb cut")
+                            tmp_score_text = font.render("-5", True, default_text_color)
+                            self.score -=5
                         self.items.remove(i)
-                        self.score += 1
-                    if i.rect.y > screen_height + fruit_size:
-                        print("fruit out of screen (down)")
+
+                    if self.score < 0:
+                        self.score = 0
+
+                    if i.rect.y > screen_height + item_size:
+                        print("item out of screen (down)")
                         self.items.remove(i)
-                        self.lives -= 1
+                        if i.item_type == "fruit":
+                            self.lives -= 1
                         if self.lives <= 0 and not immortality:
                             print("game over")
                             results = MatchResults(self.score)
@@ -182,12 +201,12 @@ class Match:
 
 class MatchResults:
 
-    def __init__(self, fruits_cut, match_date=date.today(), bonus_cut=0, malus_cut=0):
+    def __init__(self, score, match_date=date.today(), bonus_cut=0, malus_cut=0):
         self.match_date = match_date
         self.fruits_cut = 0
         self.bonus_cut = bonus_cut
         self.malus_cut = malus_cut
-        self.score = fruits_cut + self.bonus_cut * bonus_score_value - self.malus_cut * malus_score_value
+        self.score = score
 
     def print_results(self):
         print(
@@ -205,7 +224,7 @@ class Chart:
         with open("chart.csv", 'r') as file:
             csvreader = csv.reader(file)
             for row in csvreader:
-                self.matches.append(MatchResults(match_date=row[0], fruits_cut=int(row[1])))
+                self.matches.append(MatchResults(match_date=row[0], score=int(row[1])))
 
     def update_csv(self):
         with open("chart.csv", "w", newline="") as file:
@@ -229,8 +248,6 @@ class Chart:
             screen.blit(score_number, (x + 100, y + 30 * (i+1)))
 
 
-
-
 # ITEMS DEDICATED CLASSES AND SUBCLASSES
 class Item:  # all items have gravity, rect, have to spawn and get updated every cycle
 
@@ -238,14 +255,14 @@ class Item:  # all items have gravity, rect, have to spawn and get updated every
         self.item_type = item_type
         self.x = random.randint((screen_width / 2 - allowed_spawn_screen_x_pixels / 2),
                                 (screen_width / 2 + allowed_spawn_screen_x_pixels / 2))
-        self.y = screen_height + fruit_size  # always spawn right below the screen
-        self.image = pygame.transform.scale(image, (fruit_size, fruit_size))
+        self.y = screen_height + item_size  # always spawn right below the screen
+        self.image = pygame.transform.scale(image, (item_size, item_size))
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
         self.throw_angle = random.randint(-20, 20)
-        self.velocity = -random.randint(380, 550)
-        self.acceleration = 400
+        self.velocity = -random.randint(420, 580)
+        self.acceleration = 420
 
     def update(self, dt):
         self.rect.y += self.velocity * dt
@@ -259,3 +276,10 @@ class Fruit(Item):  # Item subclass: Fruits use only the images from "images"  t
     def __init__(self):
         self.image = load_image(item_images[random.choice(fruit_names)])
         super().__init__(self.image, item_type="fruit")
+
+class Malus(Item):
+
+    def __init__(self):
+        self.malus_name = random.choice(malus_names)
+        self.image = load_image(item_images[self.malus_name])
+        super().__init__(self.image, item_type=self.malus_name)
