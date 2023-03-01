@@ -36,12 +36,9 @@ class Menu:
             screen.blit(self.play_text,
                         (50,
                          150))
-            screen.blit(self.options_text,
-                        (50,
-                         180))
             screen.blit(self.exit_text,
                         (50,
-                         210))
+                         180))
             chart = Chart()
             chart.print_chart(350, 50)
             pygame.display.flip()
@@ -84,7 +81,7 @@ class Menu:
     def confirm_menu(self):
         running = True
         while running:
-            screen.blit(confirm_menu_bg, (0,0))
+            screen.blit(confirm_menu_bg, (0, 0))
             screen.blit(self.confirm_text, (50, 50))
             screen.blit(self.no_text, (50, 150))
             screen.blit(self.yes_text, (50, 180))
@@ -108,10 +105,12 @@ class Match:
     def __init__(self, game_mode="classic"):
         self.score = 0
         self.lives = 3
+        self.immortality = immortality
         self.difficulty = 1
         self.game_mode = game_mode
-        self.fruits_spawn_rate = 0.04
-        self.malus_spawn_rate = 0.01
+        self.fruits_spawn_rate = default_fruit_spawn_rate
+        self.malus_spawn_rate = default_malus_spawn_rate
+        self.bonus_spawn_rate = default_bonus_spawn_rate
         self.items = []
         self.clock = pygame.time.Clock()
         print("match initialized")
@@ -139,6 +138,9 @@ class Match:
                 if random.random() < self.malus_spawn_rate:
                     new_malus = Malus()
                     self.items.append(new_malus)
+                if random.random() < self.bonus_spawn_rate:
+                    new_bonus = Bonus()
+                    self.items.append(new_bonus)
 
                 # Clear the screen
                 screen.blit(in_game_bg, (0, 0))
@@ -147,7 +149,6 @@ class Match:
                 dt = self.clock.tick(60) / 1000
                 for i in self.items:
                     i.update(dt)
-                    screen.blit(i.image, i.rect)
 
                 # Check for cursor collision with fruits or fruits out of screen
                 cursor_pos = pygame.mouse.get_pos()
@@ -160,12 +161,23 @@ class Match:
                         elif i.item_type == "red_bomb":
                             # print("red bomb cut")
                             tmp_score_text = font.render("-10", True, default_text_color)
-                            self.score -= 10
-                            self.lives -=1
+                            self.immortality = False
+                            self.fruits_spawn_rate = default_fruit_spawn_rate
+                            self.score -= random.randint(5, 10)
+                            self.lives -= 1
                         elif i.item_type == "purple_bomb":
                             # print("purple bomb cut")
                             tmp_score_text = font.render("-5", True, default_text_color)
-                            self.score -=5
+                            self.immortality = False
+                            self.fruits_spawn_rate = default_fruit_spawn_rate
+                            self.score -= 3
+                        elif i.item_type == "party_banana":
+                            self.score += 1
+                            self.immortality = True
+                            self.fruits_spawn_rate = 0.07
+                        elif i.item_type == "strawberry":
+                            self.score += random.randint(5, 15)
+
                         self.items.remove(i)
 
                     if self.score < 0:
@@ -176,21 +188,24 @@ class Match:
                         self.items.remove(i)
                         if i.item_type == "fruit":
                             self.lives -= 1
-                        if self.lives <= 0 and not immortality:
-                            print("game over")
-                            results = MatchResults(self.score)
-                            chart = Chart()
-                            chart.add(results)
-                            chart.update_csv()
-                            running = False
 
-                # Update the score
+                    if self.lives <= 0 and not immortality and not self.immortality:  # the first immortality is global debugging immortality
+                        running = False
+                        print("game over")
+                        results = MatchResults(self.score)
+                        chart = Chart()
+                        chart.add(results)
+                        chart.update_csv()
+                        return self.score
+
+                # score text
                 score_text = font.render(f"Score: {self.score}", True, default_text_color)
                 screen.blit(score_text, (10, 10))
 
+                # lives or immortality text
                 lives_text = font.render(f"Lives: {self.lives}", True, default_text_color)
                 immortality_text = font.render("You're immortal, have fun!", True, default_text_color)
-                if immortality:
+                if immortality or self.immortality:
                     screen.blit(immortality_text, (screen_width - immortality_text.get_width() - 10, 10))
                 else:
                     screen.blit(lives_text, (screen_width - lives_text.get_width() - 10, 10))
@@ -213,7 +228,6 @@ class MatchResults:
             f"date: {self.match_date}, score: {self.score}, fruits cut: {self.fruits_cut}, bonus cut: {self.bonus_cut}, malus cut: {self.malus_cut}")
 
 
-
 class Chart:
 
     def __init__(self):
@@ -229,23 +243,26 @@ class Chart:
     def update_csv(self):
         with open("chart.csv", "w", newline="") as file:
             csvwriter = csv.writer(file)
+            self.matches.sort(key=lambda x: x.score, reverse=True)
             for m in self.matches:
                 csvwriter.writerow([m.match_date, m.score])
 
-    def add(self, MatchResults):
-        self.matches.append(MatchResults)
+    def add(self, m):
+        self.matches.append(m)
 
     def print_chart(self, x, y):
+        topten_text = font.render("Top 10:", True, default_text_color)
         date_text = font.render("Date", True, default_text_color)
         score_text = font.render("Score", True, default_text_color)
+        screen.blit(topten_text, (x - 100, y))
         screen.blit(date_text, (x, y))
         screen.blit(score_text, (x + 100, y))
         self.matches.sort(key=lambda x: x.score, reverse=True)
-        for i in range(len(self.matches)):
+        for i in range(len(self.matches[0:10])):
             date_number = font.render(f"{self.matches[i].match_date}", True, default_text_color)
             score_number = font.render(f"{self.matches[i].score}", True, default_text_color)
-            screen.blit(date_number, (x, y + 30 * (i+1)))
-            screen.blit(score_number, (x + 100, y + 30 * (i+1)))
+            screen.blit(date_number, (x, y + 30 * (i + 1)))
+            screen.blit(score_number, (x + 100, y + 30 * (i + 1)))
 
 
 # ITEMS DEDICATED CLASSES AND SUBCLASSES
@@ -264,10 +281,26 @@ class Item:  # all items have gravity, rect, have to spawn and get updated every
         self.velocity = -random.randint(420, 580)
         self.acceleration = 420
 
+        if self.item_type == "party_banana" or self.item_type == "strawberry":
+            if self.item_type == "party_banana":
+                self.radiant_name = "yellow_radiant"
+            elif self.item_type == "strawberry":
+                self.radiant_name = "red_radiant"
+            self.radiant_image = pygame.transform.scale(load_image(item_images[self.radiant_name]),
+                                                        (item_size + 60, item_size + 60))
+            self.radiant_rect = self.radiant_image.get_rect()
+            self.radiant_rect.x = self.x - 30
+            self.radiant_rect.y = self.y - 30
+
     def update(self, dt):
         self.rect.y += self.velocity * dt
         self.rect.x += math.cos(self.throw_angle)
         self.velocity += self.acceleration * dt
+        if self.item_type == "party_banana" or self.item_type == "strawberry":
+            self.radiant_rect.y += self.velocity * dt
+            self.radiant_rect.x += math.cos(self.throw_angle)
+            screen.blit(self.radiant_image, self.radiant_rect)
+        screen.blit(self.image, self.rect)
         # todo: fix fruits going un in the sky while game is paused or in confirm menu
 
 
@@ -277,9 +310,18 @@ class Fruit(Item):  # Item subclass: Fruits use only the images from "images"  t
         self.image = load_image(item_images[random.choice(fruit_names)])
         super().__init__(self.image, item_type="fruit")
 
+
 class Malus(Item):
 
     def __init__(self):
         self.malus_name = random.choice(malus_names)
         self.image = load_image(item_images[self.malus_name])
         super().__init__(self.image, item_type=self.malus_name)
+
+
+class Bonus(Item):
+
+    def __init__(self):
+        self.bonus_name = random.choice(bonus_names)
+        self.image = load_image(item_images[self.bonus_name])
+        super().__init__(self.image, item_type=self.bonus_name)
