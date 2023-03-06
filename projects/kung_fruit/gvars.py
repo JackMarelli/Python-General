@@ -32,7 +32,7 @@ malus_score_value = 10
 default_fruit_spawn_rate = 0.04
 default_malus_spawn_rate = 0.01
 default_bonus_spawn_rate = 0.003
-party_banana_spawn_rate_multuplier = 10
+party_banana_spawn_rate_multiplier = 10
 
 # images
 fruit_names = ("apple", "orange", "watermelon", "peach")
